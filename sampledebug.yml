@@ -1,0 +1,23 @@
+---
+  - name: working with operators
+    hosts: localhost
+
+    vars_prompt:
+      - name: x
+        prompt: Enter X numberic value
+        private: false
+#        default: 10
+
+      - name: y
+        prompt: Enter Y numberic value
+        private: false
+
+    tasks:
+      - name: debug
+        debug:
+          msg:
+            - "Is x equals to y: {{x==y}}"
+            - "Is x not equals to y: {{x!=y}}"
+            - "Is x greater than y: {{x>y}}"
+            - "Is X smaller than y: {{x<y}}"
+

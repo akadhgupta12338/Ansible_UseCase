@@ -1,0 +1,14 @@
+---
+  - name: working with operators
+    hosts: loc
+    vars:
+      x: 10
+      y: 17
+    tasks:
+      - name: debug
+        debug:
+          msg:
+            - "Is x == y: {{x==y}}"
+            - "Is x not equals to y: {{x!=y}}"
+            - "Is x greater than y: {{x<y}}"
+            - "Is x smaller y: {{x>y}}"

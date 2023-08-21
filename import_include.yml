@@ -1,0 +1,14 @@
+---
+  - name: Simple play to install multiple pkgs
+    hosts: aws_ec2
+    gather_facts: true
+    become: yes
+    tasks:
+      - import_tasks: RedHatwebserver.yml
+        when: ansible_os_family=="RedHat"
+      - import_tasks: Debianwebserver.yml
+        when: ansible_os_family=="Debian"
+      - include_tasks: RedHatjava.yml
+        when: ansible_os_family=="RedHat"
+      - include_tasks: Debianjava.yml
+        when: ansible_os_family=="Debian"

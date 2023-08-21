@@ -1,0 +1,55 @@
+---
+  - name: working with operators
+    hosts: localhost
+    vars_prompt:
+      - name: x
+        prompt: Enter X numberic value
+        private: false
+        default: 10
+
+      - name: y
+        prompt: Enter Y numberic value
+        private: false
+
+      - name: username
+        prompt: What is your username?
+        private: false
+
+      - name: password
+        prompt: What is your password?
+        unsafe: true
+
+    tasks:
+
+      - name: Print a message
+        debug:
+          msg: 'Logging in as {{ username }}'
+
+      - name: print value
+        debug:
+          msg:
+            - "Value of X  is {{x}} Value of Y is {{y}}"
+
+      - name: is equals
+        debug:
+          msg:
+            - "Value of X is equals to Y? : {{x==y}}"
+        when: (x==y) == true
+
+      - name: is not equals
+        debug:
+          msg:
+            - "Value of X is not equals to Y? : {{x!=y}}"
+        when: (x!=y) == true
+
+      - name: Is X smaller than Y
+        debug:
+          msg:
+            - "Value of X is smaller than Y? : {{x < y}}"
+        when: (x < y) == true
+
+      - name:  is X greater than Y
+        debug:
+          msg:
+            - "Value of X is greater than Y? : {{ x > y }}"
+        when: (x > y) == true

@@ -1,0 +1,11 @@
+---
+  - name: Simple play to install multiple pkgs
+    hosts: aws_ec2
+    gather_facts: true
+    become: yes
+    tasks:
+      - include_tasks: "{{ansible_local.web.server_details.server_os}}webserver.yml"
+      - include_tasks: "{{ansible_local.web.server_details.server_os}}java.yml"
+      - include_vars: "required_var_for_{{ansible_local.web.server_details.server_os}}.yml"
+      - debug:
+          msg: "Pkg name = {{pkg}}"

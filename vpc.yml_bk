@@ -1,0 +1,127 @@
+---
+ - name: create vpc
+   hosts: localhost
+   gather_facts: false
+   vars:
+    image_id: "ami-0eeb03e72075b9bcc"
+    instance_type: "t2.micro"
+    key: "Demo"
+    OS_Names: "EC2-Ansible"
+    ansible_python_interpreter: /usr/bin/python3
+    aws_access_key: "AKIA2XLYNQKLDYWJVKUV"
+    aws_secret_key: "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"
+    title: "Demo"
+    vpc_name: "{{ title }} VPC"
+    igw_name: "{{ title }} Igw"
+    subnet_name: "{{ title }} Subnet"
+    route_table_name: "{{ title }} Route Table"
+    security_group_name: "{{ title }} SG"
+    vpc_cidr_block: '11.0.0.0/16'
+    subnet_cidr_block: '11.0.1.0/24'
+    destination_cidr_block: '0.0.0.0/0'
+    port22_cidr_block: '0.0.0.0/0'
+    region: "ap-south-1"
+    zone: "ap-south-1a"
+
+   tasks:
+
+      - name: Create VPC over AWS Cloud
+        ec2_vpc_net:
+          aws_access_key: "{{ aws_access_key }}"
+          aws_secret_key: "{{ aws_secret_key }}"
+          name: "{{ vpc_name }}"
+          cidr_block: "{{ vpc_cidr_block }}"
+          region: "{{ region }}"
+          # enable dns support
+          dns_support: yes
+          # enable dns hostnames
+          dns_hostnames: yes
+          tenancy: default
+          state: present
+        register: ec2_vpc_net_result
+
+      - name: Create Internet Gateway for VPC
+        ec2_vpc_igw:
+           aws_access_key: "{{ aws_access_key }}"
+           aws_secret_key: "{{ aws_secret_key }}"
+           vpc_id: "{{ ec2_vpc_net_result.vpc.id }}"
+           region: "{{ region }}"
+           state: present
+           tags:
+             Name: "{{ igw_name }}"
+        register: igw_result
+
+      - name: Create VPC Subnet
+        ec2_vpc_subnet:
+           aws_access_key: "{{ aws_access_key }}"
+           aws_secret_key: "{{ aws_secret_key }}"
+           vpc_id: "{{ ec2_vpc_net_result.vpc.id }}"
+           region: "{{ region }}"
+           az: "{{ zone }}"      # az is the availability zone
+           state: present
+           cidr: "{{ subnet_cidr_block }}"
+           # enable public ip
+           map_public: yes
+           resource_tags:
+             Name: "{{ subnet_name }}"
+        register: subnet_result
+
+      - name: Create VPC Public Subnet Route Table
+        ec2_vpc_route_table:
+           aws_access_key: "{{ aws_access_key }}"
+           aws_secret_key: "{{ aws_secret_key }}"
+           vpc_id: "{{ ec2_vpc_net_result.vpc.id }}"
+           region: "{{ region }}"
+           state: present
+           tags:
+             Name: "{{ route_table_name }}"
+           subnets: [ "{{ subnet_result.subnet.id }}" ]
+           # create routes
+           routes:
+             - dest: "{{ destination_cidr_block }}"
+               gateway_id: "{{ igw_result.gateway_id }}"
+        register: public_route_table
+
+      - name: Create Security Group
+        ec2_group:
+           aws_access_key: "{{ aws_access_key }}"
+           aws_secret_key: "{{ aws_secret_key }}"
+           vpc_id: "{{ ec2_vpc_net_result.vpc.id }}"
+           region: "{{ region }}"
+           state: present
+           name: "{{ security_group_name }}"
+           description: "{{ security_group_name }}"
+           tags:
+             Name: "{{ security_group_name  }}"
+           rules:
+           - proto: all
+             cidr_ip: "{{ port22_cidr_block }}"
+             rule_desc: allow all traffic
+        register: security_group_results
+
+      - name: Create a new EC2 key
+        ec2_key:
+           name: Demo
+           region: ap-south-1
+        register: ec2_key_result
+
+      - name: Save private key
+        copy: content="{{ ec2_key_result.key.private_key }}" dest="./Demo.pem" mode=0600
+        when: ec2_key_result.changed
+
+      - name: launching AWS instance using Ansible
+        amazon.aws.ec2_instance:
+           name: DemoInstance
+           key_name: "{{ key }}"
+           instance_type: "{{ instance_type }}"
+           image_id: ami-0eeb03e72075b9bcc
+           region: "{{ region }}"
+           security_groups:
+              - "{{ security_group_results.group_id }}"
+           count: 1
+           wait: yes
+           vpc_subnet_id: "{{ subnet_result.subnet.id }}"
+           network:
+              assign_public_ip: true
+           aws_access_key: "{{ aws_access_key }}"
+           aws_secret_key: "{{ aws_secret_key }}"
